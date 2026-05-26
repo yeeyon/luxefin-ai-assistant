@@ -3,6 +3,7 @@ import { AIAssistanceService, AIAssistanceResponse } from '@/lib/services/ai-ass
 
 export interface UseAIAssistanceOptions {
   embedToken: string;
+  chatbotUrl: string;
   origin?: string;
   maxRetries?: number;
   onError?: (error: Error) => void;
@@ -25,6 +26,7 @@ export function useAIAssistance(options: UseAIAssistanceOptions): UseAIAssistanc
 
   const {
     embedToken,
+    chatbotUrl,
     origin,
     maxRetries = 1,
     onError,
@@ -52,6 +54,7 @@ export function useAIAssistance(options: UseAIAssistanceOptions): UseAIAssistanc
       const response = await AIAssistanceService.sendQueryWithRetry(
         query,
         embedToken,
+        chatbotUrl,
         origin,
         maxRetries
       );
@@ -71,7 +74,7 @@ export function useAIAssistance(options: UseAIAssistanceOptions): UseAIAssistanc
     } finally {
       setIsLoading(false);
     }
-  }, [embedToken, origin, maxRetries]);
+  }, [embedToken, chatbotUrl, origin, maxRetries]);
 
   const clearError = useCallback(() => setError(null), []);
   const clearResponse = useCallback(() => setLastResponse(null), []);

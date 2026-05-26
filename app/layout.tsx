@@ -10,8 +10,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Luxefin AI Assistant",
-  description: "Standalone wealth management AI assistant powered by embed API",
+  title: "Embed Chat Console",
+  description: "Configurable embed AI chat with admin CRM",
 }
 
 export default function RootLayout({

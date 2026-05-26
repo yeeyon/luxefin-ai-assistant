@@ -3,6 +3,7 @@ import { AIAssistanceService, AIInitResponse, SuggestedMessage, AvatarsConfig } 
 
 export interface UseAIInitOptions {
   embedToken: string;
+  chatbotUrl: string;
   origin?: string;
   onError?: (error: Error) => void;
   onSuccess?: (response: AIInitResponse) => void;
@@ -26,7 +27,7 @@ export function useAIInit(options: UseAIInitOptions): UseAIInitReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const { embedToken, origin, onError, onSuccess } = options;
+  const { embedToken, chatbotUrl, origin, onError, onSuccess } = options;
 
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
@@ -34,7 +35,7 @@ export function useAIInit(options: UseAIInitOptions): UseAIInitReturn {
   onErrorRef.current = onError;
 
   const fetchInitData = useCallback(async () => {
-    if (!embedToken) {
+    if (!embedToken || !chatbotUrl) {
       setIsLoading(false);
       return;
     }
@@ -43,7 +44,7 @@ export function useAIInit(options: UseAIInitOptions): UseAIInitReturn {
     setError(null);
 
     try {
-      const response = await AIAssistanceService.fetchInit(embedToken, origin);
+      const response = await AIAssistanceService.fetchInit(embedToken, chatbotUrl, origin);
 
       setWelcomeMessage(response.welcomeMessage);
       setSuggestedMessages(
@@ -60,7 +61,7 @@ export function useAIInit(options: UseAIInitOptions): UseAIInitReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [embedToken, origin]);
+  }, [embedToken, chatbotUrl, origin]);
 
   useEffect(() => {
     void fetchInitData();

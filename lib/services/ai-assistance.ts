@@ -1,4 +1,5 @@
 import { toError } from '../utils/api-error';
+import { DEFAULT_CHATBOT_URL } from '../settings/types';
 
 export interface AIAssistanceRequest {
   query: string;
@@ -53,34 +54,32 @@ export interface AIInitResponse {
   branding: BrandingConfig;
 }
 
-const DEFAULT_AI_CHATBOT_URL = 'https://chatbot.therelah.com';
+function resolveChatbotOrigin(chatbotUrl?: string): string {
+  return (chatbotUrl || DEFAULT_CHATBOT_URL).replace(/\/$/, '');
+}
+
+function getEndpoints(chatbotUrl?: string) {
+  const origin = resolveChatbotOrigin(chatbotUrl);
+  return {
+    baseUrl: `${origin}/api/embed/api`,
+    initUrl: `${origin}/api/embed/init`,
+  };
+}
 
 export class AIAssistanceService {
-  private static readonly chatbotOrigin = (
-    process.env.NEXT_PUBLIC_AI_CHATBOT_URL || DEFAULT_AI_CHATBOT_URL
-  ).replace(/\/$/, '');
-
-  private static readonly BASE_URL = `${AIAssistanceService.chatbotOrigin}/api/embed/api`;
-  private static readonly INIT_URL = `${AIAssistanceService.chatbotOrigin}/api/embed/init`;
-
   static async fetchInit(
     embedToken: string,
+    chatbotUrl?: string,
     origin?: string
   ): Promise<AIInitResponse> {
     try {
       const headers: Record<string, string> = {};
+      if (origin) headers.Origin = origin;
 
-      if (origin) {
-        headers.Origin = origin;
-      }
+      const { initUrl } = getEndpoints(chatbotUrl);
+      const url = `${initUrl}?apiKey=${embedToken}`;
 
-      const url = `${this.INIT_URL}?apiKey=${embedToken}`;
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers,
-      });
-
+      const response = await fetch(url, { method: 'GET', headers });
       const data = await response.json();
 
       if (!response.ok) {
@@ -100,6 +99,7 @@ export class AIAssistanceService {
   static async sendQuery(
     query: string,
     embedToken: string,
+    chatbotUrl?: string,
     origin?: string
   ): Promise<AIAssistanceResponse> {
     try {
@@ -107,19 +107,13 @@ export class AIAssistanceService {
         'Content-Type': 'application/json',
       };
 
-      if (origin) {
-        headers.Origin = origin;
-      }
+      if (origin) headers.Origin = origin;
 
-      const requestBody: AIAssistanceRequest = {
-        query,
-        token: embedToken,
-      };
-
-      const response = await fetch(this.BASE_URL, {
+      const { baseUrl } = getEndpoints(chatbotUrl);
+      const response = await fetch(baseUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ query, token: embedToken } satisfies AIAssistanceRequest),
       });
 
       const data = await response.json();
@@ -141,6 +135,7 @@ export class AIAssistanceService {
   static async sendQueryWithRetry(
     query: string,
     embedToken: string,
+    chatbotUrl?: string,
     origin?: string,
     maxRetries: number = 1
   ): Promise<AIAssistanceResponse> {
@@ -148,7 +143,7 @@ export class AIAssistanceService {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        return await this.sendQuery(query, embedToken, origin);
+        return await this.sendQuery(query, embedToken, chatbotUrl, origin);
       } catch (error: unknown) {
         lastError = toError(error);
 
@@ -165,7 +160,7 @@ export class AIAssistanceService {
   }
 
   static isValidTokenFormat(token: string): boolean {
-    return typeof token === 'string' && token.length > 0 && token.trim().length > 0;
+    return typeof token === 'string' && token.trim().length > 0;
   }
 
   static isValidQuery(query: string): boolean {

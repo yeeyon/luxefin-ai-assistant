@@ -27,6 +27,9 @@ yarn-error.log*
 .env
 .env*.local
 
+# local CRM settings (use Admin CRM or Vercel Blob in production)
+/data/settings.json
+
 # vercel
 .vercel
 
