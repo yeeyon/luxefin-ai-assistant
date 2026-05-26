@@ -6,39 +6,59 @@ const CHAT_HTML_CONFIG = {
     'b', 'strong', 'i', 'em', 'u', 'a', 'span', 'div', 'figure', 'figcaption', 'img',
   ],
   ALLOWED_ATTR: [
-    'href', 'target', 'rel', 'class', 'src', 'alt', 'width', 'height',
+    'href', 'target', 'rel', 'src', 'alt', 'width', 'height',
     'loading', 'decoding', 'title', 'referrerpolicy',
   ],
   ALLOW_DATA_ATTR: false,
 }
 
-/** Inline/block tags we expect from the embed API */
-const CONTAINS_HTML_RE =
-  /<\/?(?:h[1-6]|p|br|ul|ol|li|b|strong|i|em|u|a|span|div|figure|figcaption|img)\b/i
+const NON_VOID_TAGS = [
+  'h[1-6]',
+  'p',
+  'ul',
+  'ol',
+  'li',
+  'b',
+  'strong',
+  'i',
+  'em',
+  'u',
+  'a',
+  'span',
+  'div',
+  'figure',
+  'figcaption',
+].join('|')
+
+const HTML_PAIR_RE = new RegExp(
+  `<(${NON_VOID_TAGS})\\b[^>]*>[\\s\\S]*?<\\/\\1>`,
+  'i'
+)
+const VOID_HTML_RE = /<(?:br|img)\b[^>]*\/?>/i
+const PRESERVED_HTML_RE = /<\/?(?:h[1-6]|p|br|ul|ol|li|b|strong|i|em|u|a|span|div|figure|figcaption|img)\b/i
+
+function hasAssistantHtml(content: string): boolean {
+  return HTML_PAIR_RE.test(content) || VOID_HTML_RE.test(content)
+}
 
 function prepareAssistantContent(content: string): string {
   const trimmed = content.trim()
-  if (!CONTAINS_HTML_RE.test(trimmed)) return trimmed
+  if (!hasAssistantHtml(trimmed)) return trimmed
 
-  // API often mixes plain text with HTML and uses newlines between items
   return trimmed.replace(/\r\n/g, '\n').replace(/\n/g, '<br>')
 }
 
 /**
  * Sanitize assistant HTML when the response includes markup anywhere in the
- * string (not only when the entire message is a single HTML fragment).
+ * string (not only when the entire message is a single HTML fragment). Plain
+ * text and user messages stay on React's escaped text-rendering path.
  */
 export function sanitizeAssistantHtml(content: string): string | null {
   const prepared = prepareAssistantContent(content)
-  if (!CONTAINS_HTML_RE.test(prepared)) return null
+  if (!hasAssistantHtml(prepared)) return null
 
   const sanitized = DOMPurify.sanitize(prepared, CHAT_HTML_CONFIG).trim()
   if (!sanitized) return null
 
-  // Use HTML path if tags remain after sanitization, or text was converted (e.g. <br>)
-  if (CONTAINS_HTML_RE.test(sanitized) || sanitized.includes('<br')) {
-    return sanitized
-  }
-
-  return null
+  return PRESERVED_HTML_RE.test(sanitized) ? sanitized : null
 }
