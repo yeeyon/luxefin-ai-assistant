@@ -5,15 +5,27 @@ const SESSION_COOKIE = "admin_session"
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 function getSessionSecret(): string {
-  const secret = process.env.SESSION_SECRET?.trim() || process.env.ADMIN_PASSWORD?.trim()
+  const secret = normalizeEnv(process.env.SESSION_SECRET) || normalizeEnv(process.env.ADMIN_PASSWORD)
   if (!secret) {
     throw new Error("ADMIN_PASSWORD or SESSION_SECRET must be configured")
   }
   return secret
 }
 
+function normalizeEnv(value: string | undefined): string {
+  return value?.trim().replace(/\r?\n/g, "") ?? ""
+}
+
+function getAdminEmail(): string {
+  const email = normalizeEnv(process.env.ADMIN_EMAIL)
+  if (!email) {
+    throw new Error("ADMIN_EMAIL is not configured")
+  }
+  return email.toLowerCase()
+}
+
 function getAdminPassword(): string {
-  const password = process.env.ADMIN_PASSWORD?.trim().replace(/\r?\n/g, "")
+  const password = normalizeEnv(process.env.ADMIN_PASSWORD)
   if (!password) {
     throw new Error("ADMIN_PASSWORD is not configured")
   }
@@ -41,17 +53,25 @@ function verifySignedToken(token: string): string | null {
   }
 }
 
-export function verifyAdminPassword(password: string): boolean {
-  const expected = getAdminPassword()
-  const provided = password.trim()
-
+function safeEqual(expected: string, provided: string): boolean {
   if (expected.length !== provided.length) return false
-
   try {
     return timingSafeEqual(Buffer.from(expected), Buffer.from(provided))
   } catch {
     return false
   }
+}
+
+export function verifyAdminEmail(email: string): boolean {
+  return safeEqual(getAdminEmail(), email.trim().toLowerCase())
+}
+
+export function verifyAdminPassword(password: string): boolean {
+  return safeEqual(getAdminPassword(), password.trim())
+}
+
+export function verifyAdminCredentials(email: string, password: string): boolean {
+  return verifyAdminEmail(email) && verifyAdminPassword(password)
 }
 
 export function createSessionToken(): string {

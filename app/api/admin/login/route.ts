@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server"
-import { createSessionToken, getSessionCookieOptions, verifyAdminPassword } from "@/lib/auth"
+import { createSessionToken, getSessionCookieOptions, verifyAdminCredentials } from "@/lib/auth"
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { password?: string }
+    const body = (await request.json()) as { email?: string; password?: string }
+    const email = body.email ?? ""
     const password = body.password ?? ""
 
-    if (!verifyAdminPassword(password)) {
-      return NextResponse.json({ error: "Invalid password" }, { status: 401 })
+    if (!verifyAdminCredentials(email, password)) {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
 
     const response = NextResponse.json({ success: true })

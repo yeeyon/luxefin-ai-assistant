@@ -177,7 +177,10 @@ export default function AdminCrmPage() {
               <ExternalLink className="w-4 h-4" />
               Add your site origin to the embed token allowed domains in your chatbot dashboard.
             </p>
-            <p>Admin password is set via the <code className="text-slate-300">ADMIN_PASSWORD</code> environment variable.</p>
+            <p>
+              Admin login uses <code className="text-slate-300">ADMIN_EMAIL</code> and{" "}
+              <code className="text-slate-300">ADMIN_PASSWORD</code> environment variables.
+            </p>
           </CardContent>
         </Card>
       </div>

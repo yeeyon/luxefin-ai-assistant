@@ -9,6 +9,7 @@ import { Lock, Settings } from "lucide-react"
 
 export default function AdminLoginPage() {
   const router = useRouter()
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -22,7 +23,7 @@ export default function AdminLoginPage() {
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       })
 
       const data = await response.json()
@@ -52,17 +53,33 @@ export default function AdminLoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-slate-300">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@example.com"
+                className="bg-slate-900 border-slate-700 text-slate-100"
+                required
+                autoComplete="username"
+              />
+            </div>
+            <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-slate-300">
-                Admin password
+                Password
               </label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter admin password"
+                placeholder="Enter password"
                 className="bg-slate-900 border-slate-700 text-slate-100"
                 required
+                autoComplete="current-password"
               />
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
