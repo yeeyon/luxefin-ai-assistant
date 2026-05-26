@@ -12,16 +12,33 @@ const CHAT_HTML_CONFIG = {
   ALLOW_DATA_ATTR: false,
 }
 
-const HTML_FRAGMENT_START_RE =
-  /^<(?:h[1-6]|p|br|ul|ol|li|b|strong|i|em|u|a|span|div|figure|figcaption|img)(?:\s|>|\/)/i
+/** Inline/block tags we expect from the embed API */
+const CONTAINS_HTML_RE =
+  /<\/?(?:h[1-6]|p|br|ul|ol|li|b|strong|i|em|u|a|span|div|figure|figcaption|img)\b/i
 
-export function sanitizeAssistantHtml(content: string): string | null {
+function prepareAssistantContent(content: string): string {
   const trimmed = content.trim()
+  if (!CONTAINS_HTML_RE.test(trimmed)) return trimmed
 
-  if (!trimmed.startsWith('<') || !trimmed.endsWith('>')) return null
+  // API often mixes plain text with HTML and uses newlines between items
+  return trimmed.replace(/\r\n/g, '\n').replace(/\n/g, '<br>')
+}
 
-  const sanitized = DOMPurify.sanitize(trimmed, CHAT_HTML_CONFIG).trim()
+/**
+ * Sanitize assistant HTML when the response includes markup anywhere in the
+ * string (not only when the entire message is a single HTML fragment).
+ */
+export function sanitizeAssistantHtml(content: string): string | null {
+  const prepared = prepareAssistantContent(content)
+  if (!CONTAINS_HTML_RE.test(prepared)) return null
+
+  const sanitized = DOMPurify.sanitize(prepared, CHAT_HTML_CONFIG).trim()
   if (!sanitized) return null
 
-  return HTML_FRAGMENT_START_RE.test(sanitized) ? sanitized : null
+  // Use HTML path if tags remain after sanitization, or text was converted (e.g. <br>)
+  if (CONTAINS_HTML_RE.test(sanitized) || sanitized.includes('<br')) {
+    return sanitized
+  }
+
+  return null
 }

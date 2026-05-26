@@ -102,6 +102,15 @@
     @apply font-semibold;
   }
 
+  .chat-message-html i,
+  .chat-message-html em {
+    @apply italic;
+  }
+
+  .chat-message-html br {
+    @apply block content-[''] leading-6;
+  }
+
   .chat-message-html figure {
     @apply my-3 max-w-full;
   }
