@@ -55,6 +55,7 @@ export default function HomePage() {
   }, [messages, isTyping])
 
   const {
+    welcomeMessage,
     suggestedMessages,
     placeholder,
     avatars,
@@ -62,20 +63,22 @@ export default function HomePage() {
   } = useAIInit({
     embedToken: aiConfig?.embedToken || "",
     origin: aiConfig?.origin,
-    onSuccess: (response) => {
-      if (response.welcomeMessage) {
-        messageIdCounter.current += 1
-        setMessages([
-          {
-            id: messageIdCounter.current,
-            content: response.welcomeMessage,
-            sender: "bot",
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          },
-        ])
-      }
-    },
   })
+
+  const welcomeSeededRef = useRef(false)
+  useEffect(() => {
+    if (!welcomeMessage || welcomeSeededRef.current) return
+    welcomeSeededRef.current = true
+    messageIdCounter.current += 1
+    setMessages([
+      {
+        id: messageIdCounter.current,
+        content: welcomeMessage,
+        sender: "bot",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ])
+  }, [welcomeMessage])
 
   const { sendQuery, isLoading } = useAIAssistance({
     embedToken: aiConfig?.embedToken || "",

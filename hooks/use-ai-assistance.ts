@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { AIAssistanceService, AIAssistanceResponse } from '@/lib/services/ai-assistance';
 
 export interface UseAIAssistanceOptions {
@@ -31,6 +31,11 @@ export function useAIAssistance(options: UseAIAssistanceOptions): UseAIAssistanc
     onSuccess,
   } = options;
 
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+
   const sendQuery = useCallback(async (query: string): Promise<AIAssistanceResponse | null> => {
     setError(null);
     setIsLoading(true);
@@ -56,17 +61,17 @@ export function useAIAssistance(options: UseAIAssistanceOptions): UseAIAssistanc
       }
 
       setLastResponse(response);
-      onSuccess?.(response);
+      onSuccessRef.current?.(response);
       return response;
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
-      onError?.(error);
+      onErrorRef.current?.(error);
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [embedToken, origin, maxRetries, onError, onSuccess]);
+  }, [embedToken, origin, maxRetries]);
 
   const clearError = useCallback(() => setError(null), []);
   const clearResponse = useCallback(() => setLastResponse(null), []);

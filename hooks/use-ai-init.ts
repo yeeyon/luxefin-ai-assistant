@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { AIAssistanceService, AIInitResponse, SuggestedMessage, AvatarsConfig } from '@/lib/services/ai-assistance';
 
 export interface UseAIInitOptions {
@@ -28,7 +28,17 @@ export function useAIInit(options: UseAIInitOptions): UseAIInitReturn {
 
   const { embedToken, origin, onError, onSuccess } = options;
 
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+
   const fetchInitData = useCallback(async () => {
+    if (!embedToken) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -42,21 +52,19 @@ export function useAIInit(options: UseAIInitOptions): UseAIInitReturn {
       setPlaceholder(response.placeholder);
       setAvatars(response.avatars || null);
 
-      onSuccess?.(response);
+      onSuccessRef.current?.(response);
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
-      onError?.(error);
+      onErrorRef.current?.(error);
     } finally {
       setIsLoading(false);
     }
-  }, [embedToken, origin, onError, onSuccess]);
+  }, [embedToken, origin]);
 
   useEffect(() => {
-    if (embedToken) {
-      void fetchInitData();
-    }
-  }, [embedToken, fetchInitData]);
+    void fetchInitData();
+  }, [fetchInitData]);
 
   return {
     welcomeMessage,
